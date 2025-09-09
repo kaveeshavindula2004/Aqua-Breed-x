@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Aqua Breed",
+  "description": "A fish breeder's companion app to manage parent stock, track breeding cycles, and maintain detailed records of fry and juveniles.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
