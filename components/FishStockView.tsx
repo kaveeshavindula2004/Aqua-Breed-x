@@ -9,9 +9,11 @@ interface FishStockViewProps {
   onSelectFish: (id: string) => void;
   showInactiveFish: boolean;
   onEditSpeciesSettings: (species: string) => void;
+  onAddNewSpecies: () => void;
+  allSpecies: string[];
 }
 
-const FishStockView: React.FC<FishStockViewProps> = ({ fishStock, onAddFish, onSelectFish, showInactiveFish, onEditSpeciesSettings }) => {
+const FishStockView: React.FC<FishStockViewProps> = ({ fishStock, onAddFish, onSelectFish, showInactiveFish, onEditSpeciesSettings, onAddNewSpecies, allSpecies }) => {
   
   // 1. Filter fish based on the setting
   const filteredFish = showInactiveFish ? fishStock : fishStock.filter(f => f.status === 'Active');
@@ -29,27 +31,39 @@ const FishStockView: React.FC<FishStockViewProps> = ({ fishStock, onAddFish, onS
     (acc[fish.species] = acc[fish.species] || []).push(fish);
     return acc;
   }, {} as Record<string, Fish[]>);
-
-  const categories = Object.keys(groupedFish).sort();
+  
+  // Use allSpecies prop as the source of truth for categories
+  const categories = allSpecies;
 
   return (
     <div className="animate-fade-in h-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Fish Stock</h1>
-        <button
-          onClick={onAddFish}
-          className="flex items-center space-x-2 bg-gradient-to-br from-sky-500 to-blue-600 text-white font-semibold rounded-lg px-3 py-2 shadow-md transition-all active:scale-95 hover:shadow-lg"
-          aria-label="Add new fish"
-        >
-          <PlusIcon className="w-5 h-5" />
-          <span>Add Fish</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={onAddNewSpecies}
+            className="flex items-center space-x-2 bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 text-gray-800 dark:text-white font-semibold rounded-lg px-3 py-2 shadow-sm transition-all active:scale-95 hover:bg-gray-50 dark:hover:bg-slate-600"
+            aria-label="Add new species category"
+          >
+            <PlusIcon className="w-5 h-5" />
+            <span>New Species</span>
+          </button>
+          <button
+            onClick={onAddFish}
+            className="flex items-center space-x-2 bg-gradient-to-br from-sky-500 to-blue-600 text-white font-semibold rounded-lg px-3 py-2 shadow-md transition-all active:scale-95 hover:shadow-lg"
+            aria-label="Add new fish"
+          >
+            <PlusIcon className="w-5 h-5" />
+            <span>Add Fish</span>
+          </button>
+        </div>
       </div>
 
       <div className="space-y-6 pb-20">
         {categories.length > 0 ? (
             categories.map(species => {
                 const activeFishCount = fishStock.filter(f => f.species === species && f.status === 'Active').length;
+                const fishForSpecies = groupedFish[species] || [];
                 return (
                     <div key={species}>
                         <div className="flex items-center justify-between mb-3 px-1">
@@ -66,10 +80,15 @@ const FishStockView: React.FC<FishStockViewProps> = ({ fishStock, onAddFish, onS
                             </button>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 auto-rows-fr gap-3">
-                            {groupedFish[species].map(fish => (
+                            {fishForSpecies.map(fish => (
                                 <FishCard key={fish.id} fish={fish} onClick={() => onSelectFish(fish.id)} />
                             ))}
                         </div>
+                        {fishForSpecies.length === 0 && (
+                            <div className="text-center text-sm text-gray-400 dark:text-gray-500 py-4 italic">
+                                No fish in this category yet.
+                            </div>
+                        )}
                     </div>
                 )
             })

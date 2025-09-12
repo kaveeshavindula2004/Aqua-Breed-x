@@ -14,7 +14,7 @@ const CertificateView: React.FC<CertificateViewProps> = ({ fish, mother, father,
     const handlePrint = () => window.print();
 
   return (
-    <div className="w-screen h-screen bg-gray-200 flex items-center justify-center p-2 md:p-4 font-sans">
+    <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4 font-sans animate-fade-in">
       <div id="certificate-container" className="relative bg-white w-full max-w-4xl text-gray-800 shadow-2xl flex flex-col">
         {/* Main Certificate Content */}
         <div id="certificate-view" className="relative w-full aspect-[297/210] overflow-hidden bg-white p-6 md:p-8">
@@ -83,8 +83,8 @@ const CertificateView: React.FC<CertificateViewProps> = ({ fish, mother, father,
             </div>
         </div>
 
-        <div className="no-print flex justify-end space-x-3 p-3 bg-gray-100 rounded-b-lg">
-            <button onClick={onClose} className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg px-4 py-2 transition-colors flex items-center space-x-2">
+        <div className="no-print flex justify-end space-x-3 p-3 bg-gray-100 dark:bg-slate-900 rounded-b-lg">
+            <button onClick={onClose} className="bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-gray-200 font-semibold rounded-lg px-4 py-2 transition-colors flex items-center space-x-2">
                 <XIcon className="w-5 h-5"/>
                 <span>Close</span>
             </button>

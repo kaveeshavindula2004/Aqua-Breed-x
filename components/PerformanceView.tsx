@@ -38,50 +38,66 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ breedingRecords, fish
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
 
-    const dateFilteredData = useMemo(() => {
-        let startDate: Date | null = null;
-        let endDate: Date | null = null;
+    const { startDate, endDate } = useMemo(() => {
+        let start: Date | null = null;
+        let end: Date | null = null;
         const now = new Date();
 
         if (filter === 'monthly') {
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         } else if (filter === 'yearly') {
-            startDate = new Date(now.getFullYear(), 0, 1);
-            endDate = new Date(now.getFullYear(), 11, 31);
+            start = new Date(now.getFullYear(), 0, 1);
+            end = new Date(now.getFullYear(), 11, 31);
         } else if (filter === 'custom' && customStart && customEnd) {
-            startDate = new Date(customStart);
-            endDate = new Date(customEnd);
+            start = new Date(customStart);
+            end = new Date(customEnd);
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                return { startDate: null, endDate: null };
+            }
+        } else {
+             return { startDate: null, endDate: null };
         }
+        
+        start.setHours(0,0,0,0);
+        end.setHours(23,59,59,999);
+        return { startDate: start, endDate: end };
+    }, [filter, customStart, customEnd]);
 
-        if (!startDate || !endDate) {
-            return { filteredBreeding: breedingRecords, filteredFish: fishStock };
-        }
-        
-        startDate.setHours(0,0,0,0);
-        endDate.setHours(23,59,59,999);
-        
-        const filteredBreeding = breedingRecords.filter(r => new Date(r.pairingDate) >= startDate! && new Date(r.pairingDate) <= endDate!);
-        const filteredFish = fishStock.filter(f => f.dob && new Date(f.dob) >= startDate! && new Date(f.dob) <= endDate!);
-        
-        return { filteredBreeding, filteredFish };
-
-    }, [filter, customStart, customEnd, breedingRecords, fishStock]);
+    const filteredBreeding = useMemo(() => {
+        if (!startDate || !endDate) return breedingRecords;
+        return breedingRecords.filter(r => {
+            const pairingDate = new Date(r.pairingDate);
+            return pairingDate >= startDate && pairingDate <= endDate;
+        });
+    }, [breedingRecords, startDate, endDate]);
     
-    const { filteredBreeding, filteredFish } = dateFilteredData;
-
-    const breedingChartData = [
+    const breedingChartData = useMemo(() => [
         { label: 'Successful', value: filteredBreeding.filter(r => r.status === 'Successful').length, color: 'bg-green-500' },
         { label: 'Unsuccessful', value: filteredBreeding.filter(r => r.status === 'Unsuccessful').length, color: 'bg-red-500' },
         { label: 'Ongoing', value: filteredBreeding.filter(r => !['Successful', 'Unsuccessful'].includes(r.status)).length, color: 'bg-sky-500' }
-    ];
+    ], [filteredBreeding]);
     
-    const fishStatsData = [
-         { label: 'Fry Bred', value: filteredFish.filter(f => f.origin === 'Bred').length, color: 'bg-purple-500' },
-         { label: 'Fish Sold', value: fishStock.filter(f => f.status === 'Sold').length, color: 'bg-blue-500' }, // Sale date isn't tracked, show all for now
-         { label: 'Fish Died', value: filteredFish.filter(f => f.status === 'Dead').length, color: 'bg-gray-500' },
-    ];
+    const fishStatsData = useMemo(() => {
+        const sourceFish = fishStock;
+        if (!startDate || !endDate) {
+            return [
+                 { label: 'Fry Bred', value: sourceFish.filter(f => f.origin === 'Bred').length, color: 'bg-purple-500' },
+                 { label: 'Fish Sold', value: sourceFish.filter(f => f.status === 'Sold').length, color: 'bg-blue-500' },
+                 { label: 'Fish Died', value: sourceFish.filter(f => f.status === 'Dead').length, color: 'bg-gray-500' },
+            ];
+        }
 
+        const fryBredInPeriod = sourceFish.filter(f => f.origin === 'Bred' && f.dob && new Date(f.dob) >= startDate && new Date(f.dob) <= endDate).length;
+        const soldInPeriod = sourceFish.filter(f => f.status === 'Sold' && f.saleDate && new Date(f.saleDate) >= startDate && new Date(f.saleDate) <= endDate).length;
+        const diedInPeriod = sourceFish.filter(f => f.status === 'Dead' && f.deathDate && new Date(f.deathDate) >= startDate && new Date(f.deathDate) <= endDate).length;
+        
+        return [
+             { label: 'Fry Bred', value: fryBredInPeriod, color: 'bg-purple-500' },
+             { label: 'Fish Sold', value: soldInPeriod, color: 'bg-blue-500' },
+             { label: 'Fish Died', value: diedInPeriod, color: 'bg-gray-500' },
+        ];
+    }, [fishStock, startDate, endDate]);
 
     return (
         <div className="animate-fade-in h-full p-2">

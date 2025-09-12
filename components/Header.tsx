@@ -29,7 +29,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, onBack, notificationCount,
       </div>
       <h1 className="text-xl font-bold text-center">Aqua Breed</h1>
       <div className="flex justify-end items-center space-x-2">
-        <div className="w-10 h-10 p-1 rounded-full bg-white">
+        <div className="w-10 h-10 p-1 rounded-full bg-white dark:bg-slate-800">
           <LogoIcon />
         </div>
         <div className="relative">
