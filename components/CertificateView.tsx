@@ -1,6 +1,8 @@
 import React from 'react';
 import { Fish } from '../App';
-import { LogoIcon, ParentFishIcon, PrintIcon, XIcon } from './Icons';
+import { LogoIcon, ParentFishIcon, ShareIcon, XIcon } from './Icons';
+
+declare const html2pdf: any;
 
 interface CertificateViewProps {
   fish: Fish;
@@ -11,7 +13,41 @@ interface CertificateViewProps {
 }
 
 const CertificateView: React.FC<CertificateViewProps> = ({ fish, mother, father, onClose, farmName }) => {
-    const handlePrint = () => window.print();
+    const handleShare = async () => {
+        const element = document.getElementById('certificate-view');
+        if (!element) return;
+
+        const options = {
+            margin: 0,
+            filename: `certificate-${fish.id}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+        
+        try {
+            const pdfBlob = await html2pdf().from(element).set(options).output('blob');
+            const pdfFile = new File([pdfBlob], options.filename, { type: 'application/pdf' });
+    
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+                await navigator.share({
+                    files: [pdfFile],
+                    title: `Certificate of Origin - ${fish.nickname || fish.id}`,
+                    text: `Certificate for ${fish.species} bred by ${farmName}.`,
+                });
+            } else {
+                // Fallback for browsers that don't support Web Share API (e.g., desktop)
+                html2pdf().from(element).set(options).save();
+            }
+        } catch (error) {
+            console.error('Error sharing certificate:', error);
+            // Handle user cancellation of the share dialog gracefully
+            if ((error as DOMException).name !== 'AbortError') {
+                 alert('Could not share or save the certificate. Please try again.');
+            }
+        }
+    };
+
 
   return (
     <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-4 font-sans animate-fade-in">
@@ -88,9 +124,9 @@ const CertificateView: React.FC<CertificateViewProps> = ({ fish, mother, father,
                 <XIcon className="w-5 h-5"/>
                 <span>Close</span>
             </button>
-            <button onClick={handlePrint} className="bg-gradient-to-br from-sky-500 to-blue-600 text-white font-semibold rounded-lg px-4 py-2 shadow-md transition-all active:scale-95 hover:shadow-lg flex items-center space-x-2">
-                <PrintIcon className="w-5 h-5"/>
-                <span>Print</span>
+            <button onClick={handleShare} className="bg-gradient-to-br from-sky-500 to-blue-600 text-white font-semibold rounded-lg px-4 py-2 shadow-md transition-all active:scale-95 hover:shadow-lg flex items-center space-x-2">
+                <ShareIcon className="w-5 h-5"/>
+                <span>Share / Save PDF</span>
             </button>
         </div>
       </div>

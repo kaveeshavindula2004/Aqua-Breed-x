@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
@@ -10,7 +11,7 @@ import FishStockView from './components/FishStockView';
 import AddFishForm, { AddFishFormInitialData } from './components/AddFishForm';
 import FishDetailView from './components/FishDetailView';
 import SettingsView from './components/SettingsView';
-import { ParentFishIcon, FryIcon, BreedingIcon, EggsIcon, TotalParentFishIcon, SuccessIcon, FailureIcon, LogoIcon, InfoIcon, XIcon, TrashIcon, FinanceIcon, InventoryIcon, EyeIcon, EyeOffIcon } from './components/Icons';
+import { ParentFishIcon, FryIcon, BreedingIcon, EggsIcon, TotalParentFishIcon, SuccessIcon, FailureIcon, LogoIcon, InfoIcon, XIcon, TrashIcon, FinanceIcon, InventoryIcon, EditIcon, CameraIcon } from './components/Icons';
 import ParentStockView from './components/ParentStockView';
 import FryView from './components/FryView';
 import AddBreedingForm from './components/AddBreedingForm';
@@ -24,10 +25,8 @@ import DietPlansView from './components/DietPlansView';
 import FinanceView from './components/FinanceView';
 import SelectFishForCertificateForm from './components/SelectFishForCertificateForm';
 import AboutView from './components/AboutView';
-import LandingPage from './components/LandingPage';
-import { useTheme } from './contexts/ThemeContext';
 import SpeciesSettingsForm from './components/SpeciesSettingsForm';
-import { db, UserAccount } from './db';
+import { db } from './db';
 
 export type View = 'dashboard' | 'parentStock' | 'fry' | 'breeding' | 'fishStock' | 'settings' | 'breedingDetail' | 'fishDetail' | 'certificates' | 'performance' | 'inventory' | 'dietPlans' | 'finance' | 'about';
 
@@ -88,6 +87,7 @@ export interface SpeciesTimeline {
   incubationDays: number;
   saleReadyDays: number;
   breedingCooldownDays: number;
+  maturityDays: number;
 }
 
 export interface SpeciesSettings {
@@ -131,23 +131,16 @@ export interface Activity {
   timestamp: number;
 }
 
+export interface Certificate {
+  id?: number;
+  fishId: string;
+  issueDate: string;
+}
 
-const initialFishStock: Fish[] = [
-  { id: 'GUP-A01', species: 'Guppy', nickname: 'Zeus', dob: '2024-05-10', gender: 'Male', status: 'Active', healthHistory: [{ id: 1, date: '2024-06-15', type: 'Observation', notes: 'Vibrant colors, very active.' }], origin: 'Acquired' },
-  { id: 'GUP-A02', species: 'Guppy', nickname: 'Hera', dob: '2024-05-10', gender: 'Female', status: 'Active', healthHistory: [], origin: 'Acquired' },
-  { id: 'BET-B01', species: 'Betta', dob: '2024-03-22', gender: 'Male', status: 'Sold', salePrice: 25, saleDate: '2024-07-25', healthHistory: [], origin: 'Acquired' },
-  { id: 'ANG-C01', species: 'Angelfish', dob: '2024-02-15', gender: 'Unknown', status: 'Dead', deathDate: '2024-07-15', causeOfDeath: 'Columnaris infection', healthHistory: [{ id: 1, date: '2024-07-10', type: 'Treatment', notes: 'Treated with Furan-2.' }], origin: 'Acquired' },
-  { id: 'ANG-C02', species: 'Angelfish', dob: '2024-02-15', gender: 'Unknown', status: 'Active', healthHistory: [], origin: 'Bred', motherId: 'ANG-P01', fatherId: 'ANG-P02', breedingId: 3 },
-  { id: 'GUP-B05', species: 'Guppy', dob: '2024-07-22', gender: 'Unknown', status: 'Active', healthHistory: [], origin: 'Bred', motherId: 'GUP-A02', fatherId: 'GUP-A01', breedingId: 1 },
-];
 
-const initialBreedingRecords: BreedingRecord[] = [
-    { id: 1, motherId: 'GUP-A02', fatherId: 'GUP-A01', species: 'Guppy', pairingDate: '2024-07-20', hatchDate: '2024-07-22', status: 'Successful', notes: 'First successful batch from this pair.', dietPlan: 'Baby brine shrimp twice daily.' },
-    { id: 2, motherId: 'BET-P01', fatherId: 'BET-P02', species: 'Betta', pairingDate: '2024-07-18', eggsLaidDate: '2024-07-20', hatchDate: '2024-07-22', status: 'Hatched', notes: 'Vibrant colors expected.' },
-    { id: 3, motherId: 'ANG-P01', fatherId: 'ANG-P02', species: 'Angelfish', pairingDate: '2024-07-15', eggsLaidDate: '2024-07-18', status: 'Eggs Laid', notes: 'Parents are very defensive.' },
-    { id: 4, motherId: 'GUP-P03', fatherId: 'GUP-P04', species: 'Guppy', pairingDate: '2024-07-12', status: 'Unsuccessful', notes: 'Eggs were not viable.' },
-    { id: 5, motherId: 'CIC-P01', fatherId: 'CIC-P02', species: 'Cichlid', pairingDate: '2024-07-21', status: 'Paired', notes: 'New pair, monitoring for compatibility.' },
-];
+const initialFishStock: Fish[] = [];
+
+const initialBreedingRecords: BreedingRecord[] = [];
 
 const defaultUserProfile: UserProfile = {
   farmName: 'Your Farm/Name',
@@ -157,374 +150,239 @@ const defaultUserProfile: UserProfile = {
 };
 
 const defaultSpeciesSettings: SpeciesSettings = {
-  'Guppy': { incubationDays: 3, saleReadyDays: 30, breedingCooldownDays: 28 },
-  'Betta': { incubationDays: 3, saleReadyDays: 90, breedingCooldownDays: 14 },
-  'Angelfish': { incubationDays: 4, saleReadyDays: 60, breedingCooldownDays: 21 },
-  'Cichlid': { incubationDays: 5, saleReadyDays: 75, breedingCooldownDays: 30 },
+  'Guppy': { incubationDays: 3, saleReadyDays: 30, breedingCooldownDays: 28, maturityDays: 90 },
+  'Betta': { incubationDays: 3, saleReadyDays: 90, breedingCooldownDays: 14, maturityDays: 120 },
+  'Angelfish': { incubationDays: 4, saleReadyDays: 60, breedingCooldownDays: 21, maturityDays: 180 },
+  'Cichlid': { incubationDays: 5, saleReadyDays: 75, breedingCooldownDays: 30, maturityDays: 240 },
 };
 
-// Helper function moved outside the component to prevent re-creation on every render
-const getPasswordStrength = (pass: string) => {
-    let score = 0;
-    if (pass.length >= 8) score++;
-    if (pass.match(/[a-z]/)) score++;
-    if (pass.match(/[A-Z]/)) score++;
-    if (pass.match(/[0-9]/)) score++;
-    if (pass.match(/[^a-zA-Z0-9]/)) score++;
+// Form for adding or editing a diet plan
+const AddDietPlanForm: React.FC<{
+    onSave: (plan: DietPlan | Omit<DietPlan, 'id'>) => void,
+    onClose: () => void,
+    allSpecies: string[],
+    initialData?: DietPlan,
+    fishFeeds: InventoryItem[],
+}> = ({ onSave, onClose, allSpecies, initialData, fishFeeds }) => {
+    const [name, setName] = useState('');
+    const [species, setSpecies] = useState('');
+    const [food, setFood] = useState('');
+    const [target, setTarget] = useState<'Parents' | 'Fry' | 'All'>('All');
+    const [feedingTimes, setFeedingTimes] = useState<string[]>(['09:00']);
 
-    const level = [
-        { text: 'Weak', color: 'text-red-500', barColor: 'bg-red-500' },
-        { text: 'Weak', color: 'text-red-500', barColor: 'bg-red-500' },
-        { text: 'Fair', color: 'text-orange-500', barColor: 'bg-orange-500' },
-        { text: 'Good', color: 'text-yellow-500', barColor: 'bg-yellow-500' },
-        { text: 'Strong', color: 'text-green-500', barColor: 'bg-green-500' },
-        { text: 'Strong', color: 'text-green-500', barColor: 'bg-green-500' },
-    ][score] || { text: 'Weak', color: 'text-red-500', barColor: 'bg-red-500' };
+    useEffect(() => {
+        if (initialData) {
+            setName(initialData.name);
+            setSpecies(initialData.species);
+            setFood(initialData.food);
+            setTarget(initialData.target);
+            setFeedingTimes(initialData.feedingTimes);
+        }
+    }, [initialData]);
 
-    return { score, ...level };
-};
-
-// PasswordField component moved outside the main component to prevent re-creation on every render
-const PasswordField: React.FC<{
-    value: string;
-    onChange: React.ChangeEventHandler<HTMLInputElement>;
-    label: string;
-    id: string;
-    isVisible: boolean;
-    onToggleVisibility: () => void;
-    strength?: { score: number; text: string; color: string; barColor: string; };
-    showStrength?: boolean;
-}> = ({ value, onChange, label, id, isVisible, onToggleVisibility, strength, showStrength = false }) => (
-    <div>
-        <label htmlFor={id} className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">{label}</label>
-        <div className="relative">
-            <input 
-                type={isVisible ? 'text' : 'password'}
-                id={id}
-                value={value} 
-                onChange={onChange}
-                required
-                className="w-full bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 pr-10 focus:ring-2 focus:ring-sky-500 focus:outline-none" 
-            />
-            <button 
-                type="button" 
-                onClick={onToggleVisibility} 
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                aria-label={isVisible ? "Hide password" : "Show password"}
-            >
-                {isVisible ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-            </button>
-        </div>
-        {showStrength && value.length > 0 && strength && (
-            <div className="flex items-center space-x-2 mt-1">
-                <div className="flex-grow grid grid-cols-5 gap-1 h-1.5">
-                    {[...Array(5)].map((_, i) => (
-                        <div key={i} className={`rounded-full ${i < strength.score ? strength.barColor : 'bg-gray-200 dark:bg-slate-600'}`}></div>
-                    ))}
-                </div>
-                <span className={`text-xs font-semibold ${strength.color}`}>{strength.text}</span>
-            </div>
-        )}
-    </div>
-);
-
-
-const AuthView: React.FC<{
-    onLogin: (username: string, password: string) => Promise<string | null>;
-    onSignUp: (username: string, password: string, farmName: string, contact: string, email: string) => Promise<string | null>;
-    onCheckUsername: (username: string) => Promise<boolean>;
-    onForgotPasswordRequest: (username: string, email: string, contact: string) => Promise<string | null>;
-    onResetPassword: (username: string, newPassword: string) => Promise<string | null>;
-}> = ({ onLogin, onSignUp, onCheckUsername, onForgotPasswordRequest, onResetPassword }) => {
-    const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>('login');
-    const [loginStep, setLoginStep] = useState<'username' | 'password'>('username');
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [farmName, setFarmName] = useState('');
-    const [contact, setContact] = useState('');
-    const [email, setEmail] = useState('');
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [usernameToReset, setUsernameToReset] = useState<string | null>(null);
-    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-    const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
-    
-    // Calculate password strength here and pass it down as a prop
-    const passwordStrength = getPasswordStrength(password);
-
-    const clearState = () => {
-        setUsername('');
-        setPassword('');
-        setConfirmPassword('');
-        setFarmName('');
-        setContact('');
-        setEmail('');
-        setError(null);
-        setSuccess(null);
-        setLoginStep('username');
-        setIsPasswordVisible(false);
-        setIsConfirmPasswordVisible(false);
-    };
-    
-    const handleModeChange = (mode: 'login' | 'signup' | 'forgot') => {
-        setAuthMode(mode);
-        clearState();
+    const handleTimeChange = (index: number, value: string) => {
+        const newTimes = [...feedingTimes];
+        newTimes[index] = value;
+        setFeedingTimes(newTimes);
     };
 
-    const handleFormSubmit = async (e: React.FormEvent) => {
+    const addTimeField = () => setFeedingTimes([...feedingTimes, '']);
+    const removeTimeField = (index: number) => {
+        if (feedingTimes.length > 1) {
+            setFeedingTimes(feedingTimes.filter((_, i) => i !== index));
+        }
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        setError(null);
-        setSuccess(null);
-        setIsLoading(true);
-
-        const trimmedUsername = username.trim();
-        const trimmedFarmName = farmName.trim();
-        const trimmedContact = contact.trim();
-        const trimmedEmail = email.trim();
-        
-        let errorMessage: string | null = null;
-        
-        switch (authMode) {
-            case 'login':
-                if (loginStep === 'username') {
-                    if (!trimmedUsername) {
-                        errorMessage = "Username cannot be empty.";
-                    } else {
-                        const userExists = await onCheckUsername(trimmedUsername);
-                        if (userExists) {
-                            setUsername(trimmedUsername);
-                            setLoginStep('password');
-                        } else {
-                            errorMessage = "Username not found.";
-                        }
-                    }
-                } else { // password step
-                    if (!password.trim()) {
-                        errorMessage = "Password cannot be empty.";
-                    } else {
-                        errorMessage = await onLogin(username, password);
-                    }
-                }
-                break;
-            case 'signup':
-                {
-                    if (!trimmedUsername || !password.trim() || !trimmedFarmName || !trimmedContact || !trimmedEmail) {
-                        errorMessage = "All fields are required.";
-                    } else if (passwordStrength.score < 2) {
-                        errorMessage = "Password is too weak. Please choose a stronger one.";
-                    } else {
-                        errorMessage = await onSignUp(trimmedUsername, password, trimmedFarmName, trimmedContact, trimmedEmail);
-                    }
-                }
-                break;
-            case 'forgot':
-                {
-                    if (!trimmedUsername || !trimmedEmail || !trimmedContact) {
-                        errorMessage = "All fields are required for verification.";
-                    } else {
-                        errorMessage = await onForgotPasswordRequest(trimmedUsername, trimmedEmail, trimmedContact);
-                        if (!errorMessage) {
-                            setUsernameToReset(trimmedUsername);
-                            setAuthMode('reset');
-                            setSuccess("Verification successful. Please set a new password.");
-                        }
-                    }
-                }
-                break;
-            case 'reset':
-                if (passwordStrength.score < 2) {
-                     errorMessage = "Password is too weak.";
-                } else if (password !== confirmPassword) {
-                    errorMessage = "Passwords do not match.";
-                } else if (usernameToReset) {
-                    errorMessage = await onResetPassword(usernameToReset, password);
-                    if (!errorMessage) {
-                        handleModeChange('login');
-                        setSuccess("Password reset successfully. You can now log in.");
-                    }
-                } else {
-                    errorMessage = "An unexpected error occurred. Please try again.";
-                }
-                break;
+        if (!name || !species || !food || feedingTimes.some(t => !t)) {
+            alert("Please fill out all required fields and ensure feeding times are set.");
+            return;
         }
+        
+        const planData = {
+            name,
+            species,
+            food,
+            target,
+            feedingTimes: feedingTimes.filter(t => t),
+            timesPerDay: feedingTimes.filter(t => t).length,
+            isTemporary: false
+        };
 
-        if (errorMessage) {
-            setError(errorMessage);
-        }
-        setIsLoading(false);
-    };
-
-    const renderFormContent = () => {
-        switch (authMode) {
-            case 'forgot':
-                return {
-                    title: "Forgot Password",
-                    fields: (
-                        <>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 text-center">Enter your details to verify your account.</p>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Username</label>
-                                <input type="text" value={username} onChange={e => setUsername(e.target.value)} required className="w-full bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Email</label>
-                                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none" />
-                            </div>
-                             <div>
-                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Contact No.</label>
-                                <input type="text" value={contact} onChange={e => setContact(e.target.value)} required className="w-full bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none" />
-                            </div>
-                        </>
-                    ),
-                    buttonText: "Verify",
-                    footer: <button onClick={() => handleModeChange('login')} className="font-semibold text-sky-500 dark:text-sky-400 hover:underline">Back to Login</button>
-                };
-            case 'reset':
-                 return {
-                    title: "Reset Password",
-                    fields: (
-                        <>
-                            <PasswordField
-                                label="New Password"
-                                id="new-password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                                isVisible={isPasswordVisible}
-                                onToggleVisibility={() => setIsPasswordVisible(p => !p)}
-                                showStrength
-                                strength={passwordStrength}
-                            />
-                            <PasswordField
-                                label="Confirm New Password"
-                                id="confirm-password"
-                                value={confirmPassword}
-                                onChange={e => setConfirmPassword(e.target.value)}
-                                isVisible={isConfirmPasswordVisible}
-                                onToggleVisibility={() => setIsConfirmPasswordVisible(p => !p)}
-                            />
-                        </>
-                    ),
-                    buttonText: "Set New Password",
-                    footer: null
-                };
-            case 'signup':
-                 return {
-                    title: "Create Account",
-                    fields: (
-                        <>
-                           <div>
-                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Farm/Breeder Name *</label>
-                                <input type="text" value={farmName} onChange={(e) => setFarmName(e.target.value)} required className="w-full bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Contact *</label>
-                                <input type="text" value={contact} onChange={(e) => setContact(e.target.value)} required className="w-full bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Email *</label>
-                                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none" />
-                            </div>
-                             <div>
-                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Username *</label>
-                                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required className="w-full bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none" />
-                            </div>
-                            <PasswordField
-                                label="Password *"
-                                id="password"
-                                value={password}
-                                onChange={e => setPassword(e.target.value)}
-                                isVisible={isPasswordVisible}
-                                onToggleVisibility={() => setIsPasswordVisible(p => !p)}
-                                showStrength
-                                strength={passwordStrength}
-                            />
-                        </>
-                    ),
-                    buttonText: "Create Account",
-                    footer: <>Already have an account? <button onClick={() => handleModeChange('login')} className="font-semibold text-sky-500 dark:text-sky-400 hover:underline ml-1">Login</button></>
-                };
-            default: // login
-                if (loginStep === 'password') {
-                     return {
-                        title: "Enter Password",
-                        fields: (
-                            <>
-                                <div className="text-center mb-2">
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Logging in as</p>
-                                    <div className="flex items-center justify-center space-x-2">
-                                        <span className="font-semibold">{username}</span>
-                                        <button type="button" onClick={() => { setPassword(''); setLoginStep('username'); setError(null); }} className="text-xs font-semibold text-sky-500 dark:text-sky-400 hover:underline">(Change)</button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">Password</label>
-                                        <button type="button" onClick={() => handleModeChange('forgot')} className="text-xs font-semibold text-sky-500 dark:text-sky-400 hover:underline">Forgot Password?</button>
-                                    </div>
-                                    <PasswordField
-                                        label=""
-                                        id="login-password"
-                                        value={password}
-                                        onChange={e => setPassword(e.target.value)}
-                                        isVisible={isPasswordVisible}
-                                        onToggleVisibility={() => setIsPasswordVisible(p => !p)}
-                                    />
-                                </div>
-                            </>
-                        ),
-                        buttonText: "Login",
-                        footer: <>Don't have an account? <button onClick={() => handleModeChange('signup')} className="font-semibold text-sky-500 dark:text-sky-400 hover:underline ml-1">Sign Up</button></>
-                    };
-                }
-                // username step
-                return {
-                    title: "Login",
-                    fields: (
-                        <>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Username</label>
-                                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required className="w-full bg-gray-100 dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 focus:outline-none" autoFocus />
-                            </div>
-                        </>
-                    ),
-                    buttonText: "Next",
-                    footer: <>Don't have an account? <button onClick={() => handleModeChange('signup')} className="font-semibold text-sky-500 dark:text-sky-400 hover:underline ml-1">Sign Up</button></>
-                };
+        if (initialData) {
+            onSave({ ...planData, id: initialData.id });
+        } else {
+            onSave(planData);
         }
     };
-
-    const { title, fields, buttonText, footer } = renderFormContent();
 
     return (
-        <div className="min-h-screen bg-white dark:bg-[#0B172E] text-gray-900 dark:text-white flex flex-col justify-center items-center p-4">
-            <div className="w-full max-w-sm">
-                <div className="flex justify-center mb-6">
-                    <div className="w-20 h-20"><LogoIcon /></div>
-                </div>
-                <div className="bg-white dark:bg-slate-800/50 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-slate-700/50">
-                    <h1 className="text-2xl font-bold text-center mb-4">{title}</h1>
-                    {error && <p className="bg-red-500/20 text-red-500 dark:text-red-400 text-sm p-3 rounded-md mb-4">{error}</p>}
-                    {success && <p className="bg-green-500/20 text-green-500 dark:text-green-400 text-sm p-3 rounded-md mb-4">{success}</p>}
-                    <form onSubmit={handleFormSubmit} className="space-y-4">
-                        {fields}
-                        <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-br from-sky-500 to-blue-600 text-white font-semibold rounded-lg py-2 shadow-md transition-all active:scale-95 hover:shadow-lg disabled:opacity-50">
-                            {isLoading ? 'Processing...' : buttonText}
-                        </button>
-                    </form>
-                    {footer && <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">{footer}</p>}
-                </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 flex items-center justify-center p-4">
+            <div className="relative bg-white dark:bg-[#101f3c] rounded-2xl w-full max-w-sm text-gray-900 dark:text-white border border-gray-300 dark:border-slate-700 max-h-[90vh] flex flex-col">
+                <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
+                    <h2 className="text-xl font-bold">{initialData ? 'Edit Diet Plan' : 'New Diet Plan'}</h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700">
+                        <XIcon className="w-5 h-5" />
+                    </button>
+                </header>
+                <form onSubmit={handleSubmit} className="p-4 space-y-3 overflow-y-auto">
+                    <input type="text" placeholder="Plan Name (e.g., Guppy Fry Growth)" value={name} onChange={e => setName(e.target.value)} className="w-full bg-gray-100 dark:bg-slate-800 rounded p-2 text-sm border border-gray-300 dark:border-slate-600 focus:ring-1 focus:ring-sky-500 focus:outline-none" required />
+                    <select value={species} onChange={e => setSpecies(e.target.value)} className="w-full bg-gray-100 dark:bg-slate-800 rounded p-2 text-sm border border-gray-300 dark:border-slate-600 focus:ring-1 focus:ring-sky-500 focus:outline-none" required>
+                        <option value="">Select Species</option>
+                        {allSpecies.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <select value={food} onChange={e => setFood(e.target.value)} className="w-full bg-gray-100 dark:bg-slate-800 rounded p-2 text-sm border border-gray-300 dark:border-slate-600 focus:ring-1 focus:ring-sky-500 focus:outline-none" required>
+                        <option value="">Select Food Type</option>
+                        {fishFeeds.length > 0 ? (
+                            fishFeeds.map(feed => <option key={feed.id} value={feed.name}>{feed.name}</option>)
+                        ) : (
+                            <option value="" disabled>No fish feeds in inventory</option>
+                        )}
+                    </select>
+                    {fishFeeds.length === 0 && <p className="text-xs text-yellow-500 text-center -mt-2">Please add items to the 'Fish Feeds' category in your inventory first.</p>}
+                    <select value={target} onChange={e => setTarget(e.target.value as any)} className="w-full bg-gray-100 dark:bg-slate-800 rounded p-2 text-sm border border-gray-300 dark:border-slate-600 focus:ring-1 focus:ring-sky-500 focus:outline-none">
+                        <option value="All">All</option>
+                        <option value="Parents">Parents</option>
+                        <option value="Fry">Fry</option>
+                    </select>
+                    <div>
+                        <label className="text-sm font-medium text-gray-600 dark:text-gray-300">Feeding Times</label>
+                        {feedingTimes.map((time, index) => (
+                            <div key={index} className="flex items-center space-x-2 mt-1">
+                                <input type="time" value={time} onChange={e => handleTimeChange(index, e.target.value)} className="w-full bg-gray-100 dark:bg-slate-800 rounded p-2 text-sm border border-gray-300 dark:border-slate-600 focus:ring-1 focus:ring-sky-500 focus:outline-none" required/>
+                                {feedingTimes.length > 1 && (
+                                    <button type="button" onClick={() => removeTimeField(index)} className="p-1 text-red-500 dark:text-red-400 hover:bg-red-500/10 rounded-full">
+                                        <TrashIcon className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        <button type="button" onClick={addTimeField} className="text-sky-500 dark:text-sky-400 text-sm font-semibold mt-2 hover:underline">+ Add Time</button>
+                    </div>
+                    <div className="flex justify-end space-x-3 pt-2">
+                        <button type="button" onClick={onClose} className="bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-semibold rounded-lg px-4 py-2 transition-colors">Cancel</button>
+                        <button type="submit" className="bg-gradient-to-br from-sky-500 to-blue-600 text-white font-semibold rounded-lg px-6 py-2 shadow-md transition-all active:scale-95 hover:shadow-lg">Save</button>
+                    </div>
+                </form>
             </div>
         </div>
     );
 };
 
+// Confirmation dialog for deleting a plan
+const DietPlanConfirmationDialog: React.FC<{ plan: DietPlan; onConfirm: () => void; onCancel: () => void; }> = ({ plan, onConfirm, onCancel }) => (
+    <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
+        <div className="relative bg-white dark:bg-[#101f3c] rounded-2xl w-full max-w-sm text-gray-900 dark:text-white p-6 space-y-4 border border-gray-300 dark:border-slate-700 text-center shadow-lg">
+            <h3 className="text-xl font-bold">Confirm Deletion</h3>
+            <p className="text-gray-600 dark:text-gray-300">Are you sure you want to delete the plan <span className="font-semibold text-gray-900 dark:text-white">{plan.name}</span>?</p>
+            <div className="flex justify-center space-x-4 pt-2">
+                <button onClick={onCancel} className="bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-800 dark:text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors">Cancel</button>
+                <button onClick={onConfirm} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+);
+
+const AddInventoryItemForm: React.FC<{ onSave: (item: Omit<InventoryItem, 'id' | 'purchaseDate'>) => void, onClose: () => void }> = ({ onSave, onClose }) => {
+    const [name, setName] = useState('');
+    const [category, setCategory] = useState<InventoryCategory>('Fish Feeds');
+    const [quantity, setQuantity] = useState(1);
+    const [unitCost, setUnitCost] = useState(0);
+    const [photo, setPhoto] = useState<string | undefined>();
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setPhoto(event.target?.result as string);
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if(!name || quantity <= 0 || unitCost < 0) {
+            alert("Please fill out all fields with valid values.");
+            return;
+        }
+        const cost = quantity * unitCost;
+        onSave({ name, category, quantity, cost, photo });
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/60 z-30 flex items-center justify-center p-4">
+            <div className="relative bg-white dark:bg-[#101f3c] rounded-2xl w-full max-w-sm text-gray-900 dark:text-white border border-gray-300 dark:border-slate-700 max-h-[90vh] flex flex-col">
+                <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
+                    <h2 className="text-xl font-bold">Add New Item</h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700">
+                        <XIcon className="w-5 h-5" />
+                    </button>
+                </header>
+                <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto">
+                    <div className="flex justify-center">
+                        <div className="w-24 h-24 bg-gray-200 dark:bg-slate-800 rounded-lg relative group">
+                            <input type="file" id="item-photo-upload" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleImageChange} />
+                            <label htmlFor="item-photo-upload" className="w-full h-full flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 cursor-pointer">
+                                {photo ? (
+                                    <img src={photo} alt="Item preview" className="w-full h-full object-cover rounded-lg" />
+                                ) : (
+                                    <>
+                                        <CameraIcon className="w-8 h-8" />
+                                        <span className="text-xs mt-1">Add Photo</span>
+                                    </>
+                                )}
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Name</label>
+                        <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-gray-100 dark:bg-slate-800 rounded p-2 text-sm mt-1 border border-gray-300 dark:border-slate-600 focus:ring-1 focus:ring-sky-500 focus:outline-none"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Category</label>
+                        <select value={category} onChange={e => setCategory(e.target.value as InventoryCategory)} className="w-full bg-gray-100 dark:bg-slate-800 rounded p-2 text-sm mt-1 border border-gray-300 dark:border-slate-600 focus:ring-1 focus:ring-sky-500 focus:outline-none">
+                            <option>Fish Feeds</option>
+                            <option>Medicines</option>
+                            <option>Maintenance</option>
+                        </select>
+                    </div>
+                    <div className="flex space-x-2">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Quantity</label>
+                            <input type="number" value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} min="1" className="w-full bg-gray-100 dark:bg-slate-800 rounded p-2 text-sm mt-1 border border-gray-300 dark:border-slate-600 focus:ring-1 focus:ring-sky-500 focus:outline-none"/>
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Unit Cost ($)</label>
+                            <input type="number" value={unitCost} onChange={e => setUnitCost(parseFloat(e.target.value) || 0)} min="0" step="0.01" className="w-full bg-gray-100 dark:bg-slate-800 rounded p-2 text-sm mt-1 border border-gray-300 dark:border-slate-600 focus:ring-1 focus:ring-sky-500 focus:outline-none"/>
+                        </div>
+                    </div>
+                    <div className="flex justify-end space-x-2 pt-2">
+                        <button type="button" onClick={onClose} className="bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-800 dark:text-white px-4 py-2 rounded-lg text-sm font-semibold">Cancel</button>
+                        <button type="submit" className="bg-gradient-to-br from-sky-500 to-blue-600 text-white font-semibold rounded-lg px-6 py-2 shadow-md transition-all active:scale-95 hover:shadow-lg">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+const InventoryConfirmationDialog: React.FC<{ item: InventoryItem; onConfirm: () => void; onCancel: () => void; }> = ({ item, onConfirm, onCancel }) => (
+    <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
+        <div className="relative bg-white dark:bg-[#101f3c] rounded-2xl w-full max-w-sm text-gray-900 dark:text-white p-6 space-y-4 border border-gray-300 dark:border-slate-700 text-center shadow-lg">
+            <h3 className="text-xl font-bold">Confirm Deletion</h3>
+            <p className="text-gray-600 dark:text-gray-300">Are you sure you want to permanently delete <span className="font-semibold text-gray-900 dark:text-white">{item.name}</span>? This action cannot be undone.</p>
+            <div className="flex justify-center space-x-4 pt-2">
+                <button onClick={onCancel} className="bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-800 dark:text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors">Cancel</button>
+                <button onClick={onConfirm} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+);
+
 
 const App: React.FC = () => {
-  const [appEntered, setAppEntered] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [activities, setActivities] = useState<Activity[]>([]);
   const [breedingRecords, setBreedingRecords] = useState<BreedingRecord[]>([]);
@@ -540,245 +398,77 @@ const App: React.FC = () => {
   const [isNotificationViewOpen, setIsNotificationViewOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [editingSpecies, setEditingSpecies] = useState<string | null>(null);
+  const [isAddingSpecies, setIsAddingSpecies] = useState(false);
   const [viewingCertificateForFishId, setViewingCertificateForFishId] = useState<string | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [dietPlans, setDietPlans] = useState<DietPlan[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile>(defaultUserProfile);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [speciesSettings, setSpeciesSettings] = useState<SpeciesSettings>({});
-
-  const loadAndSetDataForUser = async (user: UserAccount) => {
-    const userId = user.id!;
-    try {
-      const fishCount = await db.fishStock.where({ userId }).count();
-      if (fishCount === 0) {
-        await db.transaction('rw', db.tables, async () => {
-          const withUserId = (item: any) => ({ ...item, userId });
-          await db.fishStock.bulkAdd(initialFishStock.map(withUserId));
-          await db.breedingRecords.bulkAdd(initialBreedingRecords.map(withUserId));
-          const initialActivitiesToSeed: Omit<Activity, 'id'>[] = [
-            { type: 'new_parent', title: 'New Parent Stock Added', subtitle: 'Pair #12 - Guppies', timestamp: Date.now() - 2 * 3600 * 1000 },
-            { type: 'fry_hatched', title: 'Fry batch #B007 hatched', subtitle: '250+ fry from Pair #09', timestamp: Date.now() - 24 * 3600 * 1000 },
-            { type: 'eggs_laid', title: 'Pair #09 laid eggs', subtitle: 'Expected hatch: 2 days', timestamp: Date.now() - 3 * 24 * 3600 * 1000 },
-          ];
-          await db.activities.bulkAdd(initialActivitiesToSeed.map(withUserId));
-          
-          const userProfileExists = await db.appState.get([userId, 'userProfile']);
-          if (!userProfileExists) {
-              await db.appState.put({ userId, key: 'userProfile', value: defaultUserProfile });
-          }
-
-          await db.appState.put({ userId, key: 'speciesSettings', value: defaultSpeciesSettings });
-          await db.appState.put({ userId, key: 'notificationsEnabled', value: true });
-          await db.appState.put({ userId, key: 'showInactiveFish', value: true });
-        });
-      }
-      
-      const [fishes, records, inv, diets, profile, settings, notifsEnabled, showInactive, acts] = await Promise.all([
-        db.fishStock.where({ userId }).toArray(),
-        db.breedingRecords.where({ userId }).toArray(),
-        db.inventory.where({ userId }).toArray(),
-        db.dietPlans.where({ userId }).toArray(),
-        db.appState.get([userId, 'userProfile']),
-        db.appState.get([userId, 'speciesSettings']),
-        db.appState.get([userId, 'notificationsEnabled']),
-        db.appState.get([userId, 'showInactiveFish']),
-        db.activities.where({ userId }).sortBy('timestamp').then(a => a.reverse().slice(0, 20))
-      ]);
-
-      setFishStock(fishes);
-      setBreedingRecords(records);
-      setInventory(inv);
-      setDietPlans(diets);
-      setUserProfile(profile?.value || defaultUserProfile);
-      setSpeciesSettings(settings?.value || defaultSpeciesSettings);
-      setNotificationsEnabled(notifsEnabled?.value === true);
-      setShowInactiveFish(showInactive?.value !== false);
-      setActivities(acts);
-
-    } catch (error) {
-      console.error("Failed to load or initialize user database:", error);
-      handleLogout(); // Log out if data fails to load
-    }
-  };
-
-  const handleLoginSuccess = async (user: UserAccount) => {
-    setIsLoading(true);
-    setCurrentUser(user);
-    localStorage.setItem('currentUserId', String(user.id!));
-    await loadAndSetDataForUser(user);
-    setIsLoading(false);
-  };
-
-  const findUserByUsernameRobustly = async (username: string): Promise<UserAccount | undefined> => {
-      const trimmedUsername = username.trim();
-      if (!trimmedUsername) return undefined;
-
-      // Efficient path first: check for clean username
-      let user = await db.userAccounts.where('username').equalsIgnoreCase(trimmedUsername).first();
-      if (user) return user;
-
-      // Robust path for dirty data (with untrimmed whitespace)
-      const allUsers = await db.userAccounts.toArray();
-      user = allUsers.find(u => u.username.trim().toLowerCase() === trimmedUsername.toLowerCase());
-      return user;
-  };
-
-  const handleSignUp = async (username: string, password: string, farmName: string, contact: string, email: string): Promise<string | null> => {
-    const trimmedUsername = username.trim();
-    try {
-        // Use a transaction to ensure all or nothing is written to the DB.
-        const newUserId = await db.transaction('rw', db.userAccounts, db.appState, async () => {
-            const existingUser = await db.userAccounts.where('username').equalsIgnoreCase(trimmedUsername).first();
-            if (existingUser) {
-                // Throwing an error aborts the transaction and can be caught outside.
-                throw new Error('Username already exists.');
-            }
-
-            const newUserAccountData = { username: trimmedUsername, password };
-            const id = await db.userAccounts.add(newUserAccountData);
-
-            const newUserProfile: UserProfile = {
-                farmName: farmName.trim(),
-                contact: contact.trim(),
-                email: email.trim(),
-                profilePicture: undefined
-            };
-            await db.appState.put({ userId: id, key: 'userProfile', value: newUserProfile });
-            
-            return id;
-        });
-
-        // If transaction was successful, log the user in.
-        const newUserForLogin: UserAccount = {
-            id: newUserId,
-            username: trimmedUsername,
-            password
-        };
-
-        await handleLoginSuccess(newUserForLogin);
-        return null; // Success
-        
-    } catch (error: any) {
-        console.error("Sign up failed:", error);
-        // Provide specific feedback if it's a known error.
-        if (error.message === 'Username already exists.') {
-            return error.message;
-        }
-        return 'An error occurred during sign up.';
-    }
-  };
-
-  const handleLogin = async (username: string, password: string): Promise<string | null> => {
-      try {
-          const user = await findUserByUsernameRobustly(username);
-          if (!user || user.password !== password) {
-              return 'Invalid username or password.';
-          }
-          
-          const trimmedUsername = username.trim();
-          if (user.username !== trimmedUsername && user.id) {
-              await db.userAccounts.update(user.id, { username: trimmedUsername });
-              user.username = trimmedUsername;
-          }
-
-          await handleLoginSuccess(user);
-          return null;
-      } catch (error) {
-          console.error("Login failed:", error);
-          return 'An error occurred during login.';
-      }
-  };
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   
-  const handleCheckUsername = async (username: string): Promise<boolean> => {
-    try {
-        const user = await findUserByUsernameRobustly(username);
-        return !!user;
-    } catch (error) {
-        console.error("Username check failed:", error);
-        return false;
-    }
-  };
+  // State for Diet Plan Modals
+  const [isDietPlanFormOpen, setIsDietPlanFormOpen] = useState(false);
+  const [editingDietPlan, setEditingDietPlan] = useState<DietPlan | undefined>(undefined);
+  const [dietPlanToDelete, setDietPlanToDelete] = useState<DietPlan | null>(null);
   
-  const handleForgotPasswordRequest = async (username: string, email: string, contact: string): Promise<string | null> => {
-    try {
-        const user = await findUserByUsernameRobustly(username);
-        if (!user || !user.id) {
-            return "Username not found.";
-        }
-        const profileState = await db.appState.get([user.id, 'userProfile']);
-        const profile = profileState?.value as UserProfile;
-
-        if (!profile) {
-            return "Profile data not found for this user.";
-        }
-
-        if (profile.email.toLowerCase().trim() !== email.toLowerCase().trim() || profile.contact.trim() !== contact.trim()) {
-            return "The provided email or contact number does not match our records.";
-        }
-        
-        return null; // Success
-    } catch (error) {
-        console.error("Forgot password request failed:", error);
-        return "An error occurred during verification.";
-    }
-  };
-
-  const handleResetPassword = async (username: string, newPassword: string): Promise<string | null> => {
-    try {
-        const user = await findUserByUsernameRobustly(username);
-        if (!user || !user.id) {
-            return "An error occurred. User not found.";
-        }
-        
-        const trimmedUsername = username.trim();
-        const updates: { password: string, username?: string } = { password: newPassword };
-        if (user.username !== trimmedUsername) {
-            updates.username = trimmedUsername;
-        }
-        await db.userAccounts.update(user.id, updates);
-
-        return null; // Success
-    } catch (error) {
-        console.error("Password reset failed:", error);
-        return "An error occurred while resetting the password.";
-    }
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('currentUserId');
-    setBreedingRecords([]);
-    setFishStock([]);
-    setInventory([]);
-    setDietPlans([]);
-    setUserProfile(defaultUserProfile);
-    setSpeciesSettings({});
-    setActivities([]);
-    setCurrentView('dashboard');
-  };
+  // State for Inventory Modals
+  const [isAddItemFormOpen, setIsAddItemFormOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
 
   useEffect(() => {
-    const autoLogin = async () => {
-        setIsLoading(true);
-        const userIdStr = localStorage.getItem('currentUserId');
-        if (userIdStr) {
-            const user = await db.userAccounts.get(Number(userIdStr));
-            if (user) {
-                setCurrentUser(user);
-                await loadAndSetDataForUser(user);
-            }
+    const loadData = async () => {
+      try {
+        const fishCount = await db.fishStock.count();
+        if (fishCount === 0) {
+          // Seed the database on first run
+          await db.transaction('rw', db.tables, async () => {
+            await db.fishStock.bulkAdd(initialFishStock);
+            await db.breedingRecords.bulkAdd(initialBreedingRecords);
+            const initialActivitiesToSeed: Omit<Activity, 'id'>[] = [];
+            await db.activities.bulkAdd(initialActivitiesToSeed);
+            await db.appState.put({ key: 'userProfile', value: defaultUserProfile });
+            await db.appState.put({ key: 'speciesSettings', value: defaultSpeciesSettings });
+            await db.appState.put({ key: 'notificationsEnabled', value: true });
+            await db.appState.put({ key: 'showInactiveFish', value: true });
+          });
         }
-        setIsLoading(false);
+        
+        const [fishes, records, inv, diets, profile, settings, notifsEnabled, showInactive, acts, certs] = await Promise.all([
+          db.fishStock.toArray(),
+          db.breedingRecords.toArray(),
+          db.inventory.toArray(),
+          db.dietPlans.toArray(),
+          db.appState.get('userProfile'),
+          db.appState.get('speciesSettings'),
+          db.appState.get('notificationsEnabled'),
+          db.appState.get('showInactiveFish'),
+          db.activities.orderBy('timestamp').reverse().limit(20).toArray(),
+          db.certificates.toArray(),
+        ]);
+
+        setFishStock(fishes);
+        setBreedingRecords(records);
+        setInventory(inv);
+        setDietPlans(diets);
+        setUserProfile(profile?.value || defaultUserProfile);
+        setSpeciesSettings(settings?.value || defaultSpeciesSettings);
+        setNotificationsEnabled(notifsEnabled?.value === true);
+        setShowInactiveFish(showInactive?.value !== false);
+        setActivities(acts);
+        setCertificates(certs);
+
+      } catch (error) {
+        console.error("Failed to load or initialize database:", error);
+      }
     };
-    if (appEntered) {
-        autoLogin();
-    }
-  }, [appEntered]);
+
+    loadData();
+  }, []);
   
   useEffect(() => {
     const checkNotifications = () => {
-      if (!notificationsEnabled || !currentUser) {
+      if (!notificationsEnabled) {
         setNotifications([]);
         return;
       }
@@ -792,7 +482,7 @@ const App: React.FC = () => {
           const mother = fishStock.find(f => f.id === record.motherId);
           const father = fishStock.find(f => f.id === record.fatherId);
           const pairLabel = `${mother?.nickname || record.motherId} x ${father?.nickname || record.fatherId}`;
-          const settings = speciesSettings[record.species] || { incubationDays: 3, saleReadyDays: 30, breedingCooldownDays: 30 };
+          const settings = speciesSettings[record.species] || { incubationDays: 3, saleReadyDays: 30, breedingCooldownDays: 30, maturityDays: 90 };
   
           if (record.status === 'Eggs Laid' && record.eggsLaidDate) {
               const expectedHatchDate = new Date(record.eggsLaidDate);
@@ -837,19 +527,18 @@ const App: React.FC = () => {
         return [...prev, ...uniqueNew];
       });
     };
-    if(!isLoading) checkNotifications();
+    checkNotifications();
     const intervalId = setInterval(checkNotifications, 60000);
     return () => clearInterval(intervalId);
-  }, [breedingRecords, notificationsEnabled, fishStock, speciesSettings, inventory, dietPlans, isLoading, currentUser]);
+  }, [breedingRecords, notificationsEnabled, fishStock, speciesSettings, inventory, dietPlans]);
   
   const addActivity = async (activity: Omit<Activity, 'id' | 'timestamp'>) => {
-      if (!currentUser) return;
       const newActivity: Activity = {
           ...activity,
           timestamp: Date.now()
       };
       try {
-          const newId = await db.activities.add({ ...newActivity, userId: currentUser.id! });
+          const newId = await db.activities.add(newActivity);
           setActivities(prev => [{ ...newActivity, id: newId }, ...prev].slice(0, 20));
       } catch (error) {
           console.error("Failed to add activity:", error);
@@ -857,41 +546,41 @@ const App: React.FC = () => {
   };
 
   const handleToggleNotifications = (enabled: boolean) => {
-    if (!currentUser) return;
     setNotificationsEnabled(enabled);
-    db.appState.put({ userId: currentUser.id!, key: 'notificationsEnabled', value: enabled });
+    db.appState.put({ key: 'notificationsEnabled', value: enabled });
   };
   
-  const handleUpdateSpeciesSetting = (species: string, timeline: Partial<SpeciesTimeline>) => {
-    if (!currentUser) return;
-    const newSettings = {
-        ...speciesSettings,
-        [species]: {
-            ...speciesSettings[species] || { incubationDays: 3, saleReadyDays: 30, breedingCooldownDays: 30 },
-            ...timeline
-        }
-    };
+  const handleSaveSpeciesSettings = (species: string, timeline: SpeciesTimeline) => {
+    const trimmedSpecies = species.trim();
+    if (!trimmedSpecies) {
+      alert("Species name cannot be empty.");
+      return;
+    }
+
+    const isAdding = !Object.keys(speciesSettings).find(s => s.toLowerCase() === trimmedSpecies.toLowerCase());
+    if (isAdding) {
+      const currentAllSpecies = [...new Set([...fishStock.map(f => f.species), ...Object.keys(speciesSettings)])];
+      if (currentAllSpecies.some(s => s.toLowerCase() === trimmedSpecies.toLowerCase())) {
+        alert(`Species "${trimmedSpecies}" already exists.`);
+        return;
+      }
+    }
+    
+    const newSettings = { ...speciesSettings, [trimmedSpecies]: timeline };
     setSpeciesSettings(newSettings);
-    db.appState.put({ userId: currentUser.id!, key: 'speciesSettings', value: newSettings });
+    db.appState.put({ key: 'speciesSettings', value: newSettings });
+
+    setEditingSpecies(null);
+    setIsAddingSpecies(false);
   };
 
-    const handleAddNewSpecies = () => {
-        const currentAllSpecies = [...new Set([...fishStock.map(f => f.species), ...Object.keys(speciesSettings)])];
-        const newSpeciesName = window.prompt("Enter the name for the new fish category:");
-        if (newSpeciesName && newSpeciesName.trim() !== '') {
-            const trimmedName = newSpeciesName.trim();
-            if (currentAllSpecies.find(s => s.toLowerCase() === trimmedName.toLowerCase())) {
-                alert(`Category "${trimmedName}" already exists.`);
-                return;
-            }
-            handleUpdateSpeciesSetting(trimmedName, {});
-        }
-    };
+  const handleAddNewSpecies = () => {
+    setIsAddingSpecies(true);
+  };
 
   const handleUpdateProfile = (profile: UserProfile) => {
-    if (!currentUser) return;
     setUserProfile(profile);
-    db.appState.put({ userId: currentUser.id!, key: 'userProfile', value: profile });
+    db.appState.put({ key: 'userProfile', value: profile });
   };
 
   const handleDismissNotification = (id: string) => {
@@ -914,7 +603,6 @@ const App: React.FC = () => {
   };
 
   const handleDeleteActivity = (id: number) => {
-    if (!currentUser) return;
     db.activities.delete(id);
     setActivities(prev => prev.filter(activity => activity.id !== id));
   };
@@ -940,7 +628,6 @@ const App: React.FC = () => {
   };
   
   const handleUpdateBreedingStatus = (id: number, status: BreedingStatus) => {
-    if (!currentUser) return;
     let updatedRecord: BreedingRecord | null = null;
     const recordToUpdate = breedingRecords.find(r => r.id === id);
     if (!recordToUpdate) return;
@@ -964,18 +651,16 @@ const App: React.FC = () => {
     if (status === 'Hatched' && !updatedRecord.hatchDate) updatedRecord.hatchDate = today;
 
     setBreedingRecords(prev => prev.map(r => r.id === id ? updatedRecord! : r));
-    db.breedingRecords.put({ ...updatedRecord, userId: currentUser.id! });
+    db.breedingRecords.put(updatedRecord);
     if(status === 'Successful' || status === 'Unsuccessful') setCurrentView('breeding');
   };
 
   const handleUpdateBreedingRecord = (updatedRecord: BreedingRecord) => {
-    if (!currentUser) return;
     setBreedingRecords(prev => prev.map(r => r.id === updatedRecord.id ? updatedRecord : r));
-    db.breedingRecords.put({ ...updatedRecord, userId: currentUser.id! });
+    db.breedingRecords.put(updatedRecord);
   }
 
   const handleAddFish = (newFishPayload: NewFishPayload) => {
-    if (!currentUser) return;
     const speciesCode = newFishPayload.species.trim().substring(0, 3).toUpperCase();
     const uniqueId = `${speciesCode}-${Date.now()}`;
     const newFish: Fish = {
@@ -984,7 +669,7 @@ const App: React.FC = () => {
       origin: newFishPayload.motherId ? 'Bred' : 'Acquired',
     };
     setFishStock(prev => [...prev, newFish]);
-    db.fishStock.add({ ...newFish, userId: currentUser.id! });
+    db.fishStock.add(newFish);
     setIsAddingFish(false);
     setAddFishInitialData(undefined);
 
@@ -1009,14 +694,12 @@ const App: React.FC = () => {
   };
 
   const handleAddBreeding = async (payload: NewBreedingPayload) => {
-    if (!currentUser) return;
     const mother = fishStock.find(f => f.id === payload.motherId);
     if (!mother) return;
 
-    const recordToAdd: Omit<BreedingRecord & { userId: number }, 'id'> = {
+    const recordToAdd = {
       ...payload,
       species: mother.species,
-      userId: currentUser.id!,
     };
     
     const newId = await db.breedingRecords.add(recordToAdd as any);
@@ -1035,8 +718,6 @@ const App: React.FC = () => {
   }
 
   const handleUpdateFish = (updatedFish: Fish) => {
-    if (!currentUser) return;
-    
     const oldFish = fishStock.find(f => f.id === updatedFish.id);
     let fishToUpdate = { ...updatedFish };
 
@@ -1060,7 +741,7 @@ const App: React.FC = () => {
     }
     
     setFishStock(prev => prev.map(fish => fish.id === fishToUpdate.id ? fishToUpdate : fish));
-    db.fishStock.put({ ...fishToUpdate, userId: currentUser.id! });
+    db.fishStock.put(fishToUpdate);
   };
 
   const handleMenuSelect = (view: View) => {
@@ -1072,46 +753,63 @@ const App: React.FC = () => {
     setViewingCertificateForFishId(fishId);
   };
   
-  const handleConfirmCertSale = (fishId: string, price: number) => {
+  const handleConfirmCertSale = async (fishId: string, price: number) => {
     const fish = fishStock.find(f => f.id === fishId);
     if (!fish) return;
     
-    handleUpdateFish({ ...fish, status: 'Sold', salePrice: price });
-    handleViewCertificate(fishId);
-    setIsSelectingFishForCert(false);
+    try {
+      // 1. Update fish status and save
+      // FIX: Explicitly type `updatedFish` as `Fish` to prevent TypeScript from widening the 'status' property to a generic 'string'.
+      const updatedFish: Fish = { ...fish, status: 'Sold', salePrice: price };
+      await db.fishStock.put(updatedFish);
+      setFishStock(prev => prev.map(f => (f.id === fishId ? updatedFish : f)));
+      
+      // 2. Create and save certificate record
+      const newCertificate: Certificate = {
+        fishId: fishId,
+        issueDate: new Date().toISOString().split('T')[0]
+      };
+      const newCertId = await db.certificates.add(newCertificate);
+      setCertificates(prev => [...prev, { ...newCertificate, id: newCertId }]);
+
+      // 3. Close selection form and open view
+      setIsSelectingFishForCert(false);
+      handleViewCertificate(fishId);
+
+    } catch (error) {
+      console.error("Failed to confirm certificate sale:", error);
+      alert("Error: Could not save the sale information.");
+    }
   };
 
   const handleAddInventoryItem = (item: Omit<InventoryItem, 'id' | 'purchaseDate'>) => {
-    if (!currentUser) return;
     const newItem: InventoryItem = { 
         ...item, 
         id: `item-${Date.now()}`,
         purchaseDate: new Date().toISOString().split('T')[0]
     };
-    db.inventory.add({ ...newItem, userId: currentUser.id! });
+    db.inventory.add(newItem);
     setInventory(prev => [...prev, newItem]);
     addActivity({
         type: 'inventory_added',
         title: 'Inventory Updated',
         subtitle: `Added ${item.quantity} x ${item.name}`
     });
+    setIsAddItemFormOpen(false);
   }
   const handleUpdateInventoryItem = (item: InventoryItem) => {
-    if (!currentUser) return;
-    db.inventory.put({ ...item, userId: currentUser.id! });
+    db.inventory.put(item);
     setInventory(prev => prev.map(i => i.id === item.id ? item : i));
   }
   const handleDeleteInventoryItem = (itemId: string) => {
-    if (!currentUser) return;
     db.inventory.delete(itemId);
     setInventory(prev => prev.filter(i => i.id !== itemId));
   }
   
   const handleAddDietPlan = async (plan: Omit<DietPlan, 'id'>) => {
-    if (!currentUser) return;
     const newPlan = { ...plan, id: `diet-${Date.now()}` };
     try {
-        await db.dietPlans.add({ ...newPlan, userId: currentUser.id! });
+        await db.dietPlans.add(newPlan);
         setDietPlans(prev => [...prev, newPlan]);
     } catch (error) {
         console.error("Failed to add diet plan:", error);
@@ -1120,9 +818,8 @@ const App: React.FC = () => {
   };
   
   const handleUpdateDietPlan = async (plan: DietPlan) => {
-      if (!currentUser) return;
       try {
-          await db.dietPlans.put({ ...plan, userId: currentUser.id! });
+          await db.dietPlans.put(plan);
           setDietPlans(prev => prev.map(p => (p.id === plan.id ? plan : p)));
       } catch (error) {
           console.error("Failed to update diet plan:", error);
@@ -1131,7 +828,6 @@ const App: React.FC = () => {
   };
 
   const handleDeleteDietPlan = async (planId: string) => {
-      if (!currentUser) return;
       try {
           await db.dietPlans.delete(planId);
           setDietPlans(prev => prev.filter(p => p.id !== planId));
@@ -1141,10 +837,52 @@ const App: React.FC = () => {
       }
   };
 
+  const handleOpenAddDietPlan = () => {
+    setEditingDietPlan(undefined);
+    setIsDietPlanFormOpen(true);
+  };
+  
+  const handleOpenEditDietPlan = (plan: DietPlan) => {
+    setEditingDietPlan(plan);
+    setIsDietPlanFormOpen(true);
+  };
+
+  const handleCloseDietPlanForm = () => {
+    setIsDietPlanFormOpen(false);
+    setEditingDietPlan(undefined);
+  };
+
+  const handleSaveDietPlan = async (planData: DietPlan | Omit<DietPlan, 'id'>) => {
+    if ('id' in planData) {
+      await handleUpdateDietPlan(planData as DietPlan);
+    } else {
+      await handleAddDietPlan(planData as Omit<DietPlan, 'id'>);
+    }
+    handleCloseDietPlanForm();
+  };
+  
+  const handleConfirmDeleteDietPlan = async () => {
+    if (dietPlanToDelete) {
+      await handleDeleteDietPlan(dietPlanToDelete.id);
+      setDietPlanToDelete(null);
+    }
+  };
+
+  const handleOpenAddItem = () => setIsAddItemFormOpen(true);
+  const handleCloseAddItem = () => setIsAddItemFormOpen(false);
+  const handleOpenDeleteItem = (item: InventoryItem) => setItemToDelete(item);
+  const handleCloseDeleteItem = () => setItemToDelete(null);
+  
+  const handleConfirmDeleteItem = () => {
+      if(itemToDelete) {
+        handleDeleteInventoryItem(itemToDelete.id);
+        handleCloseDeleteItem();
+      }
+  }
+
   const handleToggleInactiveFish = (show: boolean) => {
-    if (!currentUser) return;
     setShowInactiveFish(show);
-    db.appState.put({ userId: currentUser.id!, key: 'showInactiveFish', value: show });
+    db.appState.put({ key: 'showInactiveFish', value: show });
   }
 
   const formatTimeAgo = (timestamp: number) => {
@@ -1175,28 +913,6 @@ const App: React.FC = () => {
           default: return { icon: <InfoIcon className="w-5 h-5 text-white" />, bgColor: 'bg-gray-500' };
       }
   };
-
-  if (!appEntered) {
-    return <LandingPage onEnter={() => setAppEntered(true)} />;
-  }
-  
-  if (isLoading) {
-    return (
-        <div className="min-h-screen bg-white dark:bg-[#0B172E] flex items-center justify-center">
-            <ParentFishIcon className="w-16 h-16 text-sky-500 animate-pulse" />
-        </div>
-    );
-  }
-
-  if (!currentUser) {
-    return <AuthView 
-        onLogin={handleLogin} 
-        onSignUp={handleSignUp}
-        onCheckUsername={handleCheckUsername}
-        onForgotPasswordRequest={handleForgotPasswordRequest}
-        onResetPassword={handleResetPassword}
-    />;
-  }
 
   const selectedBreedingRecord = breedingRecords.find(r => r.id === selectedBreedingId);
   const selectedFish = fishStock.find(f => f.id === selectedFishId);
@@ -1275,13 +991,13 @@ const App: React.FC = () => {
         return selectedFish ? (
             <FishDetailView fish={selectedFish} onUpdateFish={handleUpdateFish} onGenerateCertificate={handleViewCertificate} fishStock={fishStock} breedingRecords={breedingRecords} />
         ) : <PlaceholderView title="Fish not found"/>;
-      case 'settings': return <SettingsView showInactive={showInactiveFish} onToggleInactive={handleToggleInactiveFish} notificationsEnabled={notificationsEnabled} onToggleNotifications={handleToggleNotifications} speciesSettings={speciesSettings} allSpecies={allSpecies} onUpdateSpeciesSetting={handleUpdateSpeciesSetting} userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onAddNewSpecies={handleAddNewSpecies} onLogout={handleLogout} currentUser={currentUser} />;
-      case 'certificates': return <CertificatesView fishStock={fishStock} onViewCertificate={handleViewCertificate} onNewCertificate={() => setIsSelectingFishForCert(true)} />;
+      case 'settings': return <SettingsView showInactive={showInactiveFish} onToggleInactive={handleToggleInactiveFish} notificationsEnabled={notificationsEnabled} onToggleNotifications={handleToggleNotifications} speciesSettings={speciesSettings} allSpecies={allSpecies} onEditSpeciesSettings={setEditingSpecies} userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onAddNewSpecies={handleAddNewSpecies} />;
+      case 'certificates': return <CertificatesView certificates={certificates} fishStock={fishStock} onViewCertificate={handleViewCertificate} onNewCertificate={() => setIsSelectingFishForCert(true)} />;
       case 'performance': return <PerformanceView breedingRecords={breedingRecords} fishStock={fishStock} />;
-      case 'inventory': return <InventoryView inventory={inventory} onAddItem={handleAddInventoryItem} onUpdateItem={handleUpdateInventoryItem} onDeleteItem={handleDeleteInventoryItem} />;
-      case 'dietPlans': return <DietPlansView dietPlans={dietPlans} allSpecies={allSpecies} onAdd={handleAddDietPlan} onUpdate={handleUpdateDietPlan} onDelete={handleDeleteDietPlan} fishFeeds={fishFeeds} />;
+      case 'inventory': return <InventoryView inventory={inventory} onUpdateItem={handleUpdateInventoryItem} onOpenAddItem={handleOpenAddItem} onOpenDeleteItem={handleOpenDeleteItem} />;
+      case 'dietPlans': return <DietPlansView dietPlans={dietPlans} onOpenAdd={handleOpenAddDietPlan} onOpenEdit={handleOpenEditDietPlan} onOpenDelete={setDietPlanToDelete} />;
       case 'finance': return <FinanceView fishStock={fishStock} inventory={inventory} />;
-      case 'about': return <AboutView userProfile={userProfile} />;
+      case 'about': return <AboutView />;
       case 'dashboard': default: return <Dashboard />;
     }
   };
@@ -1289,7 +1005,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-[#0B172E] text-gray-900 dark:text-white flex flex-col">
         
-        {viewingFishForCert && (
+        {viewingCertificateForFishId && (
             <CertificateView
                 fish={viewingFishForCert}
                 mother={motherForCert}
@@ -1302,14 +1018,44 @@ const App: React.FC = () => {
         {isAddingBreeding && <AddBreedingForm onClose={() => setIsAddingBreeding(false)} onSave={handleAddBreeding} parentStock={fishStock.filter(f => f.status === 'Active')} />}
         {isNotificationViewOpen && <NotificationView notifications={notifications} onClose={() => setIsNotificationViewOpen(false)} onNotificationClick={handleNotificationClick} onDismiss={handleDismissNotification} />}
         {isSelectingFishForCert && <SelectFishForCertificateForm eligibleFish={fishStock.filter(f => f.status === 'Active')} onClose={() => setIsSelectingFishForCert(false)} onConfirm={handleConfirmCertSale} />}
+        
+        {isDietPlanFormOpen && (
+            <AddDietPlanForm
+                onSave={handleSaveDietPlan}
+                onClose={handleCloseDietPlanForm}
+                allSpecies={allSpecies}
+                initialData={editingDietPlan}
+                fishFeeds={fishFeeds}
+            />
+        )}
+        {dietPlanToDelete && (
+            <DietPlanConfirmationDialog
+                plan={dietPlanToDelete}
+                onConfirm={handleConfirmDeleteDietPlan}
+                onCancel={() => setDietPlanToDelete(null)}
+            />
+        )}
+        
+        {isAddItemFormOpen && (
+            <AddInventoryItemForm onSave={handleAddInventoryItem} onClose={handleCloseAddItem}/>
+        )}
+        {itemToDelete && (
+            <InventoryConfirmationDialog item={itemToDelete} onConfirm={handleConfirmDeleteItem} onCancel={handleCloseDeleteItem} />
+        )}
+        
+        {isAddingSpecies && (
+            <SpeciesSettingsForm
+                allSpecies={allSpecies}
+                onSave={handleSaveSpeciesSettings}
+                onClose={() => setIsAddingSpecies(false)}
+            />
+        )}
         {editingSpecies && (
             <SpeciesSettingsForm
-                species={editingSpecies}
-                settings={speciesSettings[editingSpecies] || { incubationDays: 3, saleReadyDays: 30, breedingCooldownDays: 30 }}
-                onSave={(timeline) => {
-                    handleUpdateSpeciesSetting(editingSpecies, timeline);
-                    setEditingSpecies(null);
-                }}
+                speciesToEdit={editingSpecies}
+                settings={speciesSettings[editingSpecies]}
+                allSpecies={allSpecies}
+                onSave={handleSaveSpeciesSettings}
                 onClose={() => setEditingSpecies(null)}
             />
         )}

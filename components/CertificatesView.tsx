@@ -1,16 +1,16 @@
 import React from 'react';
-import { Fish } from '../App';
+import { Fish, Certificate } from '../App';
 import { PlusIcon } from './Icons';
 
 interface CertificatesViewProps {
+    certificates: Certificate[];
     fishStock: Fish[];
     onViewCertificate: (fishId: string) => void;
     onNewCertificate: () => void;
 }
 
-const CertificatesView: React.FC<CertificatesViewProps> = ({ fishStock, onViewCertificate, onNewCertificate }) => {
-    const issuedCertificates = fishStock.filter(f => f.status === 'Sold');
-
+const CertificatesView: React.FC<CertificatesViewProps> = ({ certificates, fishStock, onViewCertificate, onNewCertificate }) => {
+    
     return (
         <div className="animate-fade-in h-full p-2">
             <div className="flex justify-between items-center mb-6">
@@ -24,23 +24,27 @@ const CertificatesView: React.FC<CertificatesViewProps> = ({ fishStock, onViewCe
                 </button>
             </div>
 
-
             <div className="space-y-3 pb-20">
-                {issuedCertificates.length > 0 ? (
-                    issuedCertificates.map(fish => (
-                        <div key={fish.id} className="bg-white dark:bg-slate-800/50 p-3 rounded-lg flex items-center justify-between">
-                            <div>
-                                <p className="font-semibold">{fish.nickname || fish.id}</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{fish.species} - Sold</p>
+                {certificates.length > 0 ? (
+                    certificates.map(cert => {
+                        const fish = fishStock.find(f => f.id === cert.fishId);
+                        if (!fish) return null; // Or render a placeholder for a deleted fish
+
+                        return (
+                            <div key={cert.id} className="bg-white dark:bg-slate-800/50 p-3 rounded-lg flex items-center justify-between">
+                                <div>
+                                    <p className="font-semibold">{fish.nickname || fish.id}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{fish.species} - Issued on {cert.issueDate}</p>
+                                </div>
+                                <button
+                                    onClick={() => onViewCertificate(fish.id)}
+                                    className="bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm rounded-md px-3 py-1 transition-colors"
+                                >
+                                    View/Print
+                                </button>
                             </div>
-                            <button
-                                onClick={() => onViewCertificate(fish.id)}
-                                className="bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm rounded-md px-3 py-1 transition-colors"
-                            >
-                                View/Print
-                            </button>
-                        </div>
-                    ))
+                        )
+                    })
                 ) : (
                     <div className="text-center text-gray-500 dark:text-gray-400 py-10">
                         <p>No certificates have been issued.</p>

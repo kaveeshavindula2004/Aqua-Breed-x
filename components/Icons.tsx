@@ -26,7 +26,7 @@ export const LogoIcon: React.FC<IconProps> = ({ className }) => (
       <path fill="#4A90E2" d="M60.2,9.1c-8,0-15.5,3.3-20.9,8.7c3.9,2.8,8.2,4.8,12.8,5.8c11,2.5,19.6,9.9,23.3,20.4c2,5.7,2.2,11.8,0.7,17.5c4.6-2,8.9-4.8,12.7-8.2c-2.9-8.1-7.8-15.3-14.2-21.2C81.8,19.9,71.4,12.9,60.2,9.1z"/>
       <path fill="#4A90E2" d="M90.9,39.8c0,8-3.3,15.5-8.7,20.9c-2.8,3.9-4.8,8.2-5.8,12.8c-2.5,11-9.9,19.6-20.4,23.3c-5.7,2-11.8,2.2-17.5,0.7c2,4.6,4.8,8.9,8.2,12.7c8.1-2.9,15.3-7.8,21.2-14.2c9.8-9.8,16.8-20.2,20.6-31.4C93.4,66.4,94.2,53.2,90.9,39.8z"/>
       <path fill="#4A90E2" d="M39.8,90.9c8,0,15.5-3.3,20.9-8.7c-3.9-2.8-8.2-4.8-12.8-5.8c-11-2.5-19.6-9.9-23.3-20.4c-2-5.7-2.2-11.8-0.7-17.5c-4.6,2-8.9,4.8-12.7,8.2c2.9,8.1,7.8,15.3,14.2,21.2C32.2,84.1,42.6,91.1,53.8,94.9C50.2,93.4,45,92.6,39.8,90.9z"/>
-      <path fill="#4A90E2" d="M9.1,60.2c0-8,3.3-15.5,8.7-20.9c2.8-3.9,4.8-8.2,5.8-12.8c2.5-11,9.9-19.6,20.4-23.3c5.7-2,11.8-2.2,17.5-0.7c-2-4.6-4.8-8.9-8.2-12.7c-8.1,2.9-15.3,7.8-21.2,14.2C22.2,19.9,15.2,30.3,11.4,41.5C8.9,54.7,9.7,67.9,13.1,81.3C11.5,74.5,10.6,67.4,9.1,60.2z"/>
+      <path fill="#4A90E2" d="M9.1,60.2c0-8,3.3-15.5,8.7-20.9c2.8-3.9,4.8-8.2,5.8-12.8c2.5-11,9.9-19.6,20.4-23.3c5.7-2,11.8-2.2,17.5-0.7c-2-4.6-4.8-8.9-8.2-12.7c-8.1,2.9-15.3-7.8-21.2,14.2C22.2,19.9,15.2,30.3,11.4,41.5C8.9,54.7,9.7,67.9,13.1,81.3C11.5,74.5,10.6,67.4,9.1,60.2z"/>
 
       <path fill="#50E3C2" d="M81.3,13.1c-13.4-3.4-26.6-2.6-39.8,2.8C30.3,22.2,19.9,29.2,9.1,39.8c-6.8,6.8-11.3,15.2-13.1,24.5c4.6-2,8.9-4.8,12.7-8.2c-2.9-8.1-2.2-16.9,2-24.5c5.3-9.5,14.4-15.9,25.1-17.4C46.8,13,56.5,14.4,64.9,20.1C72.8,25.4,78.2,33.5,79.5,42.9C83.2,39.2,87.6,36.1,92.2,33.7C88.9,25.9,85.5,19.1,81.3,13.1z"/>
       <path fill="#50E3C2" d="M86.9,81.3c3.4-13.4,2.6-26.6-2.8-39.8c-6.3-11.2-13.3-21.6-23.1-31.4c-6.8-6.8-15.2-11.3-24.5-13.1c2,4.6,4.8,8.9,8.2,12.7c8.1,2.9,16.9,2.2,24.5-2c9.5-5.3,15.9-14.4,17.4-25.1c1.5-10.9-1.4-22.3-8.6-30.7c3.7,3.7,6.8,7.9,9.2,12.4C90.2,19.3,92.5,29,91.7,38.9C90.3,53.4,81.6,66.5,68.6,72.9C74.1,75.4,79.1,78.5,83.5,82.3C85.5,84.1,86.9,82.7,86.9,81.3z"/>
@@ -239,6 +239,13 @@ export const HeartbeatIcon: React.FC<IconProps> = ({ className }) => (
     </svg>
 );
 
+export const UserIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+    </svg>
+);
+
 export const EyeIcon: React.FC<IconProps> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -250,5 +257,15 @@ export const EyeOffIcon: React.FC<IconProps> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
         <line x1="1" y1="1" x2="23" y2="23"></line>
+    </svg>
+);
+
+export const ShareIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="18" cy="5" r="3"></circle>
+      <circle cx="6" cy="12" r="3"></circle>
+      <circle cx="18" cy="19" r="3"></circle>
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
     </svg>
 );

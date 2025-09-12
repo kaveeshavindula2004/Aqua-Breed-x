@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ToggleSwitch from './ToggleSwitch';
-import { SpeciesSettings, SpeciesTimeline, UserProfile } from '../App';
+import { SpeciesSettings, UserProfile } from '../App';
 import { CameraIcon, ParentFishIcon, PlusIcon, EditIcon } from './Icons';
 import { useTheme } from '../contexts/ThemeContext';
-import { UserAccount } from '../db';
 
 interface SettingsViewProps {
   showInactive: boolean;
@@ -12,12 +11,10 @@ interface SettingsViewProps {
   onToggleNotifications: (enabled: boolean) => void;
   speciesSettings: SpeciesSettings;
   allSpecies: string[];
-  onUpdateSpeciesSetting: (species: string, timeline: Partial<SpeciesTimeline>) => void;
+  onEditSpeciesSettings: (species: string) => void;
   userProfile: UserProfile;
   onUpdateProfile: (profile: UserProfile) => void;
   onAddNewSpecies: () => void;
-  onLogout: () => void;
-  currentUser: UserAccount;
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ 
@@ -25,14 +22,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     onToggleInactive, 
     notificationsEnabled, 
     onToggleNotifications,
-    speciesSettings,
     allSpecies,
-    onUpdateSpeciesSetting,
+    onEditSpeciesSettings,
     userProfile,
     onUpdateProfile,
     onAddNewSpecies,
-    onLogout,
-    currentUser
 }) => {
     const { theme, setTheme } = useTheme();
     const [profile, setProfile] = useState(userProfile);
@@ -147,7 +141,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     </div>
                     <div className="flex-grow space-y-0.5">
                         <p className="text-lg font-bold">{profile.farmName}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">@{currentUser.username}</p>
                         {profile.contact && <p className="text-sm text-gray-500 dark:text-gray-400">{profile.contact}</p>}
                         {profile.email && <p className="text-sm text-gray-500 dark:text-gray-400">{profile.email}</p>}
                     </div>
@@ -193,56 +186,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             </button>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Set custom notification timers for each species.</p>
-        <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
             {allSpecies.length > 0 ? allSpecies.map(species => {
-                const settings = speciesSettings[species] || { incubationDays: 0, saleReadyDays: 0, breedingCooldownDays: 30 };
                 return (
-                    <div key={species} className="p-3 bg-gray-100 dark:bg-slate-900/50 rounded-lg">
+                    <div key={species} className="p-3 bg-gray-100 dark:bg-slate-900/50 rounded-lg flex justify-between items-center">
                         <h3 className="font-semibold">{species}</h3>
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                            <div>
-                                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Incubation</label>
-                                <input 
-                                    type="number" 
-                                    value={settings.incubationDays}
-                                    onChange={(e) => onUpdateSpeciesSetting(species, { incubationDays: parseInt(e.target.value) || 0 })}
-                                    className="w-full text-sm bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-2 py-1.5 focus:ring-1 focus:ring-sky-500 focus:outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Sale Ready</label>
-                                 <input 
-                                    type="number" 
-                                    value={settings.saleReadyDays}
-                                    onChange={(e) => onUpdateSpeciesSetting(species, { saleReadyDays: parseInt(e.target.value) || 0 })}
-                                    className="w-full text-sm bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-2 py-1.5 focus:ring-1 focus:ring-sky-500 focus:outline-none"
-                                />
-                            </div>
-                             <div>
-                                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Breeding Cycle</label>
-                                 <input 
-                                    type="number" 
-                                    value={settings.breedingCooldownDays || 30}
-                                    onChange={(e) => onUpdateSpeciesSetting(species, { breedingCooldownDays: parseInt(e.target.value) || 0 })}
-                                    className="w-full text-sm bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded-md px-2 py-1.5 focus:ring-1 focus:ring-sky-500 focus:outline-none"
-                                />
-                            </div>
-                        </div>
+                        <button 
+                            onClick={() => onEditSpeciesSettings(species)}
+                            className="flex items-center space-x-1.5 text-sm font-semibold text-sky-500 dark:text-sky-400 p-2 -my-2 -mr-2 rounded-lg hover:bg-sky-500/10 transition-colors"
+                        >
+                            <EditIcon className="w-4 h-4" />
+                            <span>Edit</span>
+                        </button>
                     </div>
                 )
             }) : <p className="text-sm text-center text-gray-500 py-4">Add fish to your stock to set species timelines.</p>}
         </div>
       </div>
-
-      <div className="mt-6">
-          <button
-              onClick={onLogout}
-              className="w-full text-center py-3 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-red-500 dark:text-red-400 font-semibold rounded-lg transition-colors"
-          >
-              Logout
-          </button>
-      </div>
-
     </div>
   );
 };
